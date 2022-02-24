@@ -34,10 +34,6 @@ use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Ring\Client\StreamHandler;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Http\Message\RequestInterface;
-use Psr\Log\LoggerInterface;
-use Monolog\Logger;
-use Monolog\Handler\StreamHandler as MonologStreamHandler;
-use Monolog\Handler\SyslogHandler as MonologSyslogHandler;
 use BadMethodCallException;
 use DomainException;
 use InvalidArgumentException;
@@ -80,11 +76,6 @@ class Client
    * @var array $config
    */
   private $config;
-
-  /**
-   * @var LoggerInterface $logger
-   */
-  private $logger;
 
   /**
    * @var boolean $deferExecution
@@ -282,11 +273,6 @@ class Client
       );
     }
 
-    $this->getLogger()->log(
-        'info',
-        'OAuth2 access token refresh with Signed JWT assertion grants.'
-    );
-
     $credentials = $this->createApplicationDefaultCredentials();
 
     $httpHandler = HttpHandlerFactory::build($authHttp);
@@ -326,7 +312,6 @@ class Client
       }
       $refreshToken = $this->token['refresh_token'];
     }
-    $this->getLogger()->info('OAuth2 access token refresh');
     $auth = $this->getOAuth2Service();
     $auth->setRefreshToken($refreshToken);
 
@@ -1084,40 +1069,6 @@ class Client
   public function setCacheConfig(array $cacheConfig)
   {
     $this->config['cache_config'] = $cacheConfig;
-  }
-
-  /**
-   * Set the Logger object
-   * @param LoggerInterface $logger
-   */
-  public function setLogger(LoggerInterface $logger)
-  {
-    $this->logger = $logger;
-  }
-
-  /**
-   * @return LoggerInterface
-   */
-  public function getLogger()
-  {
-    if (!isset($this->logger)) {
-      $this->logger = $this->createDefaultLogger();
-    }
-
-    return $this->logger;
-  }
-
-  protected function createDefaultLogger()
-  {
-    $logger = new Logger('google-api-php-client');
-    if ($this->isAppEngine()) {
-      $handler = new MonologSyslogHandler('app', LOG_USER, Logger::NOTICE);
-    } else {
-      $handler = new MonologStreamHandler('php://stderr', Logger::NOTICE);
-    }
-    $logger->pushHandler($handler);
-
-    return $logger;
   }
 
   protected function createDefaultCache()
