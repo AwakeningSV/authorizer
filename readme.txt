@@ -1,7 +1,7 @@
 === Authorizer ===
-Contributors: figureone, the_magician, pkarjala, aargh-a-knot, elarequi, jojaba
+Contributors: figureone, the_magician, pkarjala, aargh-a-knot, elarequi, jojaba, slyraskal
 Tags: cas, ldap, google, google plus, login, authentication, authorization, access, education, limit login attempts, oauth
-Tested up to: 5.9
+Tested up to: 6.0
 Stable tag: trunk
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -62,7 +62,42 @@ The [University of Hawai'i][uh], which provides authentication for student, facu
 
 == Changelog ==
 
-= Version 3.2.2 =
+= 3.4.1 =
+* Add setting to support CAS servers behind proxies. Props @slyraskal for the [pull request](https://github.com/uhm-coe/authorizer/pull/117)!
+
+= 3.4.0 =
+* Upgrade guzzlehttp from 7.4.2 to 7.4.5.
+* Upgrade composer dependencies (apereo/phpcas 1.4.0 => 1.5.0; google/apiclient v2.12.4 => v2.12.6; google/apiclient-services v0.246.0 => v0.254.0; google/auth v1.21.0 => v1.21.1; monolog/monolog 2.5.0 => 2.7.0; paragonie/constant_time_encoding 2.5.0 => 2.6.3).
+* Authorizer now requires PHP 7.2 or higher (phpCAS requirement).
+
+= 3.3.3 =
+* Add multisite option to prevent subsites from overriding multisite settings.
+* Allow LDAP bind as user logging in before attempting anonymous bind (by using the [username] wildcard in the LDAP Directory User settings field).
+* Add LDAP test connection to Authorizer multisite settings.
+* Tested up to WordPress 6.0.
+* Update translatable strings.
+* Update French translations. Props @julienlusson!
+
+= 3.3.2 =
+* Attempt LDAP bind as user logging in if directory user credentials not provided or incorrect.
+* Fixed logged errors if LDAP search base couldn't be found (error only shows in LDAP test connection now).
+* Fixed LDAP test connection password saved in database.
+* Upgrade composer dependencies (google/apiclient v2.12.2 => v2.12.4; google/apiclient-services v0.242.0 => v0.246.0; google/auth v1.19.0 => v1.21.0; monolog/monolog 2.4.0 => 2.5.0).
+
+= 3.3.1 =
+* Upgrade composer dependencies (firebase/php-jwt v5.4.0 => v5.5.1; google/apiclient v2.11.0 => v2.12.2; google/apiclient-services v0.213.0 => v0.242.0; google/auth v1.18.0 => v1.19.0; guzzlehttp/guzzle 7.3.0 => 7.4.2; guzzlehttp/promises 1.4.1 => 1.5.1; league/oauth2-client 2.6.0 => 2.6.1; monolog/monolog 2.3.4 => 2.4.0; paragonie/constant_time_encoding v2.4.0 => v2.5.0; phpseclib/phpseclib 3.0.10 => 3.0.14).
+* Upgrade guzzlehttp/psr7 2.0.0 => 2.2.1 (security).
+
+= 3.3.0 =
+* Add LDAP connection test feature (under LDAP settings).
+* Update translatable strings.
+* Update French translations. Props @julienlusson!
+* Add settings icon to dashboard widget header.
+* Better styling in dashboard widget.
+* Remove "Local WordPress user" icon from Approved User list (uninformative).
+* Small coding standards fixes.
+
+= 3.2.2 =
 * Fix PHP warning when anonymous users browse a restricted site.
 * Only load authorizer-public.js when necessary (when site is configured so only logged in users can view the site, current user does not have access, and anonymous users should be shown a message). Props @flim0 for the catch!
 

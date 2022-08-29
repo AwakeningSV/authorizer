@@ -84,9 +84,9 @@ class Access_Lists extends \Authorizer\Singleton {
 							<select id="auth_settings_<?php echo esc_attr( $option ); ?>_<?php echo esc_attr( $key ); ?>_role" class="auth-role">
 								<?php Helper::wp_dropdown_permitted_roles( $pending_user['role'] ); ?>
 							</select>
-							<a href="javascript:void(0);" class="button button-primary dashicons-before dashicons-insert" id="approve_user_<?php echo esc_attr( $key ); ?>" onclick="authAddUser( this, 'approved', false ); authIgnoreUser( this, 'pending' );"><?php esc_html_e( 'Approve', 'authorizer' ); ?></a>
-							<a href="javascript:void(0);" class="button button-primary dashicons-before dashicons-remove" id="block_user_<?php echo esc_attr( $key ); ?>" onclick="authAddUser( this, 'blocked', false ); authIgnoreUser( this, 'pending' );"><?php esc_html_e( 'Block', 'authorizer' ); ?></a>
-							<a href="javascript:void(0);" class="button button-secondary dashicons-before dashicons-no" id="ignore_user_<?php echo esc_attr( $key ); ?>" onclick="authIgnoreUser( this, 'pending' );" title="<?php esc_html_e( 'Remove user', 'authorizer' ); ?>"><?php esc_html_e( 'Ignore', 'authorizer' ); ?></a>
+							<a href="javascript:void(0);" class="button button-primary dashicons-before dashicons-insert" id="approve_user_<?php echo esc_attr( $key ); ?>" onclick="authAddUser( this, 'approved', false ); authIgnoreUser( this, 'pending' );" title="<?php esc_attr_e( 'Approve', 'authorizer' ); ?>"></a>
+							<a href="javascript:void(0);" class="button button-primary dashicons-before dashicons-remove" id="block_user_<?php echo esc_attr( $key ); ?>" onclick="authAddUser( this, 'blocked', false ); authIgnoreUser( this, 'pending' );" title="<?php esc_attr_e( 'Block', 'authorizer' ); ?>"></a>
+							<a href="javascript:void(0);" class="button button-secondary dashicons-before dashicons-no" id="ignore_user_<?php echo esc_attr( $key ); ?>" onclick="authIgnoreUser( this, 'pending' );" title="<?php esc_html_e( 'Remove user', 'authorizer' ); ?>" title="<?php esc_html_e( 'Ignore', 'authorizer' ); ?>"></a>
 						</li>
 					<?php endforeach; ?>
 				<?php else : ?>
@@ -119,7 +119,7 @@ class Access_Lists extends \Authorizer\Singleton {
 		if (
 			is_multisite() &&
 			! is_network_admin() &&
-			1 !== intval( $auth_override_multisite ) &&
+			( 1 !== intval( $auth_override_multisite ) || ! empty( $auth_multisite_settings['prevent_override_multisite'] ) ) &&
 			array_key_exists( 'multisite_override', $auth_multisite_settings ) &&
 			'1' === $auth_multisite_settings['multisite_override']
 		) {
@@ -164,7 +164,7 @@ class Access_Lists extends \Authorizer\Singleton {
 		if ( in_array( $sort_by, array( 'email', 'role', 'date_added' ), true ) ) {
 			foreach ( $auth_settings_option as $key => $user ) {
 				if ( 'date_added' === $sort_by ) {
-					$sort_dimension[ $key ] = date( 'Ymd', strtotime( $user[ $sort_by ] ) );
+					$sort_dimension[ $key ] = wp_date( 'Ymd', strtotime( $user[ $sort_by ] ) );
 				} else {
 					$sort_dimension[ $key ] = strtolower( $user[ $sort_by ] );
 				}
@@ -277,7 +277,7 @@ class Access_Lists extends \Authorizer\Singleton {
 						<select id="auth_settings_<?php echo esc_attr( $option ); ?>_<?php echo esc_attr( $key ); ?>_role" class="auth-role">
 							<?php Helper::wp_dropdown_permitted_roles( $blocked_user['role'] ); ?>
 						</select>
-						<input type="text" id="auth_settings_<?php echo esc_attr( $option ); ?>_<?php echo esc_attr( $key ); ?>_date_added" value="<?php echo esc_attr( date( 'M Y', strtotime( $blocked_user['date_added'] ) ) ); ?>" readonly="true" class="auth-date-added" />
+						<input type="text" id="auth_settings_<?php echo esc_attr( $option ); ?>_<?php echo esc_attr( $key ); ?>_date_added" value="<?php echo esc_attr( wp_date( 'M Y', strtotime( $blocked_user['date_added'] ) ) ); ?>" readonly="true" class="auth-date-added" />
 						<a class="button dashicons-before dashicons-no" id="ignore_user_<?php echo esc_attr( $key ); ?>" onclick="authIgnoreUser( this, 'blocked' );" title="<?php esc_attr_e( 'Remove user', 'authorizer' ); ?>"></a>
 					</li>
 				<?php endforeach; ?>
@@ -424,8 +424,7 @@ class Access_Lists extends \Authorizer\Singleton {
 	 * @return void
 	 */
 	public function render_user_element( $approved_user, $key, $option, $admin_mode, $advanced_usermeta ) {
-		$is_local_user     = array_key_exists( 'local_user', $approved_user ) && 'true' === $approved_user['local_user'];
-		$is_multisite_user = array_key_exists( 'multisite_user', $approved_user ) && true === $approved_user['multisite_user'];
+		$is_multisite_user = array_key_exists( 'multisite_user', $approved_user ) && ( true === $approved_user['multisite_user'] || 'true' === $approved_user['multisite_user'] );
 		$option_prefix     = $is_multisite_user ? 'auth_multisite_settings_' : 'auth_settings_';
 		$option_id         = $option_prefix . $option . '_' . $key;
 		$approved_wp_user  = get_user_by( 'email', $approved_user['email'] );
@@ -441,7 +440,7 @@ class Access_Lists extends \Authorizer\Singleton {
 			// Check if this user (who doesn't yet have a WordPress user) has any
 			// stored usermeta (from an admin adding it via the approved list).
 			if ( ! empty( $approved_user['usermeta']['meta_key'] ) && ! empty( $advanced_usermeta ) ) :
-				if ( strpos( $advanced_usermeta, 'acf___' ) === 0 && class_exists( 'acf' ) && $approved_user['usermeta']['meta_key'] === str_replace( 'acf___', '', $advanced_usermeta ) ) :
+				if ( strpos( $advanced_usermeta, 'acf___' ) === 0 && class_exists( 'acf' ) && str_replace( 'acf___', '', $advanced_usermeta ) === $approved_user['usermeta']['meta_key'] ) :
 					// Get stored value for the user.
 					$approved_user['usermeta'] = $approved_user['usermeta']['meta_value'];
 				elseif ( $approved_user['usermeta']['meta_key'] === $advanced_usermeta ) :
@@ -499,7 +498,7 @@ class Access_Lists extends \Authorizer\Singleton {
 			<input
 				type="text"
 				id="<?php echo esc_attr( $option_id ); ?>_date_added"
-				value="<?php echo esc_attr( date( 'M Y', strtotime( $approved_user['date_added'] ) ) ); ?>"
+				value="<?php echo esc_attr( wp_date( 'M Y', strtotime( $approved_user['date_added'] ) ) ); ?>"
 				readonly="true"
 				class="<?php echo esc_attr( Helper::get_css_class_name_for_option( 'date-added', $is_multisite_user ) ); ?>"
 			/>
@@ -537,18 +536,23 @@ class Access_Lists extends \Authorizer\Singleton {
 					<input
 						type="text"
 						id="<?php echo esc_attr( $option_id ); ?>_usermeta"
-						value="<?php echo esc_attr( $approved_user['usermeta'], ENT_COMPAT ); ?>"
+						value="<?php echo esc_attr( $approved_user['usermeta'] ); ?>"
 						class="<?php echo esc_attr( Helper::get_css_class_name_for_option( 'usermeta', $is_multisite_user ) ); ?>"
 					/>
 					<a class="button button-primary dashicons-before dashicons-edit update-usermeta" id="update_usermeta_<?php echo esc_attr( $key ); ?>" onclick="<?php echo esc_attr( $js_function_prefix ); ?>UpdateUsermeta( this );" title="Update usermeta"></a>
 				<?php endif; ?>
 			<?php endif; ?>
-			<?php if ( ! $is_multisite_admin_page ) : ?>
-				<a class="button button-primary dashicons-before dashicons-remove<?php echo $is_current_user || $is_multisite_user ? ' invisible' : ''; ?>" id="block_user_<?php echo esc_attr( $key ); ?>" onclick="<?php echo esc_attr( $js_function_prefix ); ?>AddUser( this, 'blocked', false ); <?php echo esc_attr( $js_function_prefix ); ?>IgnoreUser( this, 'approved' );" title="<?php esc_attr_e( 'Block/Ban user', 'authorizer' ); ?>"></a>
+
+			<?php if ( $is_multisite_admin_page ) : // On multisite admin, render buttons: multisite user, ignore. ?>
+				<a title="WordPress Multisite user" class="button disabled auth-multisite-user dashicons-before dashicons-admin-site"></a>
+				<a class="button dashicons-before dashicons-no<?php echo $is_current_user ? ' invisible' : ''; ?>" id="ignore_user_<?php echo esc_attr( $key ); ?>" onclick="<?php echo esc_attr( $js_function_prefix ); ?>IgnoreUser(this, 'approved' );" title="<?php esc_attr_e( 'Remove user', 'authorizer' ); ?>"></a>
+			<?php elseif ( $is_multisite_user ) : // On single site admin, but showing multisite user, render buttons: multisite user (x2). ?>
+				<a title="WordPress Multisite user" class="button disabled auth-multisite-user dashicons-before dashicons-admin-site"></a>
+				<a title="WordPress Multisite user" class="button disabled auth-multisite-user dashicons-before dashicons-admin-site"></a>
+			<?php else : // On single site admin showing single site user, render buttons: block, ignore. ?>
+				<a class="button button-primary dashicons-before dashicons-remove<?php echo $is_current_user ? ' invisible' : ''; ?>" id="block_user_<?php echo esc_attr( $key ); ?>" onclick="<?php echo esc_attr( $js_function_prefix ); ?>AddUser( this, 'blocked', false ); <?php echo esc_attr( $js_function_prefix ); ?>IgnoreUser( this, 'approved' );" title="<?php esc_attr_e( 'Block/Ban user', 'authorizer' ); ?>"></a>
+				<a class="button dashicons-before dashicons-no<?php echo $is_current_user ? ' invisible' : ''; ?>" id="ignore_user_<?php echo esc_attr( $key ); ?>" onclick="<?php echo esc_attr( $js_function_prefix ); ?>IgnoreUser(this, 'approved' );" title="<?php esc_attr_e( 'Remove user', 'authorizer' ); ?>"></a>
 			<?php endif; ?>
-			<a class="button dashicons-before dashicons-no<?php echo $is_current_user || $is_multisite_user ? ' invisible' : ''; ?>" id="ignore_user_<?php echo esc_attr( $key ); ?>" onclick="<?php echo esc_attr( $js_function_prefix ); ?>IgnoreUser(this, 'approved' );" title="<?php esc_attr_e( 'Remove user', 'authorizer' ); ?>"></a>
-			&nbsp;<a title="Local WordPress user" class="button disabled auth-local-user dashicons-before dashicons-businessperson<?php echo $is_local_user ? '' : ' invisible'; ?>"></a>
-			&nbsp;<a title="WordPress Multisite user" class="button disabled auth-multisite-user dashicons-before dashicons-admin-site<?php echo $is_multisite_user || $is_multisite_admin_page ? '' : ' invisible'; ?>"></a>
 		</li>
 		<?php
 	}
@@ -577,8 +581,9 @@ class Access_Lists extends \Authorizer\Singleton {
 				if ( Helper::SINGLE_CONTEXT !== $admin_mode ) {
 					// Get multisite users only.
 					$auth_settings_access_users = $options->get( 'access_users_approved', Helper::NETWORK_CONTEXT );
-				} elseif ( is_multisite() && 1 === intval( $options->get( 'advanced_override_multisite' ) ) ) {
-					// This site has overridden any multisite settings, so only get its users.
+				} elseif ( is_multisite() && 1 === intval( $options->get( 'advanced_override_multisite' ) ) && empty( $options->get( 'prevent_override_multisite', Helper::NETWORK_CONTEXT ) ) ) {
+					// This site has overridden any multisite settings (and is not
+					// prevented from doing so), so only get its users.
 					$auth_settings_access_users = $options->get( 'access_users_approved', Helper::SINGLE_CONTEXT );
 				} else {
 					// Get all site users and all multisite users.

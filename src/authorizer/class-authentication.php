@@ -21,6 +21,7 @@ class Authentication extends Singleton {
 
 	/**
 	 * Tracks the external service used by the user currently logging out.
+	 *
 	 * @var string
 	 */
 	private static $authenticated_by = '';
@@ -341,20 +342,20 @@ class Authentication extends Singleton {
 
 			// If we don't have an authorization code, then get one.
 			if ( ! isset( $_REQUEST['code'] ) ) {
-				$auth_url = $provider->getAuthorizationUrl( array(
+				$auth_url                = $provider->getAuthorizationUrl( array(
 					'scope' => 'user:email',
 				) );
 				$_SESSION['oauth2state'] = $provider->getState();
 				header( 'Location: ' . $auth_url );
 				exit;
 
-			// Check state against previously stored one to mitigate CSRF attacks.
 			} elseif ( empty( $_REQUEST['state'] ) || empty( $_SESSION['oauth2state'] ) || $_REQUEST['state'] !== $_SESSION['oauth2state'] ) {
+				// Check state against previously stored one to mitigate CSRF attacks.
 				unset( $_SESSION['oauth2state'] );
 				exit;
 
-			// Try to get an access token (using the authorization code grant).
 			} else {
+				// Try to get an access token (using the authorization code grant).
 				try {
 					$token = $provider->getAccessToken( 'authorization_code', array(
 						'code' => $_REQUEST['code'],
@@ -362,7 +363,7 @@ class Authentication extends Singleton {
 				} catch ( \Exception $e ) {
 					// Failed to get token; try again from the beginning. Usually a
 					// bad_verification_code error. See: https://docs.github.com/en/free-pro-team@latest/developers/apps/troubleshooting-oauth-app-access-token-request-errors#bad-verification-code.
-					$auth_url = $provider->getAuthorizationUrl( array(
+					$auth_url                = $provider->getAuthorizationUrl( array(
 						'scope' => 'user:email',
 					) );
 					$_SESSION['oauth2state'] = $provider->getState();
@@ -380,7 +381,7 @@ class Authentication extends Singleton {
 
 					// If user has no public email, fetch all emails and use those.
 					if ( empty( $email ) ) {
-						$request = $provider->getAuthenticatedRequest(
+						$request              = $provider->getAuthenticatedRequest(
 							'GET',
 							$provider->getResourceOwnerDetailsUrl( $token ) . '/emails',
 							$token
@@ -398,10 +399,9 @@ class Authentication extends Singleton {
 					return null;
 				}
 			}
-
-		// Authenticate with the Microsoft Azure oauth2 client.
-		// See: https://github.com/thenetworg/oauth2-azure.
 		} elseif ( 'azure' === $auth_settings['oauth2_provider'] ) {
+			// Authenticate with the Microsoft Azure oauth2 client.
+			// See: https://github.com/thenetworg/oauth2-azure.
 			session_start();
 			try {
 				$provider = new \TheNetworg\OAuth2\Client\Provider\Azure( array(
@@ -424,25 +424,23 @@ class Authentication extends Singleton {
 			// If we don't have an authorization code, then get one.
 			if ( ! isset( $_REQUEST['code'] ) ) {
 				try {
-					$auth_url = $provider->getAuthorizationUrl( array(
+					$auth_url                = $provider->getAuthorizationUrl( array(
 						'scope' => $provider->scope,
 					) );
 					$_SESSION['oauth2state'] = $provider->getState();
 					header( 'Location: ' . $auth_url );
 					exit;
-			} catch ( \Exception $e ) {
-				// Invalid configuration, so this in not a successful login. Show error
-				// message to user.
-				return new \WP_Error( 'empty_username', $e->getMessage() );
-			}
-
-			// Check state against previously stored one to mitigate CSRF attacks.
+				} catch ( \Exception $e ) {
+					// Invalid configuration, so this in not a successful login. Show error
+					// message to user.
+					return new \WP_Error( 'empty_username', $e->getMessage() );
+				}
 			} elseif ( empty( $_REQUEST['state'] ) || empty( $_SESSION['oauth2state'] ) || $_REQUEST['state'] !== $_SESSION['oauth2state'] ) {
+				// Check state against previously stored one to mitigate CSRF attacks.
 				unset( $_SESSION['oauth2state'] );
 				exit;
-
-			// Try to get an access token (using the authorization code grant).
 			} else {
+				// Try to get an access token (using the authorization code grant).
 				try {
 					$token = $provider->getAccessToken( 'authorization_code', array(
 						'code'  => $_REQUEST['code'],
@@ -450,7 +448,7 @@ class Authentication extends Singleton {
 					) );
 				} catch ( \Exception $e ) {
 					// Failed to get token; try again from the beginning.
-					$auth_url = $provider->getAuthorizationUrl( array(
+					$auth_url                = $provider->getAuthorizationUrl( array(
 						'scope' => $provider->scope,
 					) );
 					$_SESSION['oauth2state'] = $provider->getState();
@@ -464,7 +462,7 @@ class Authentication extends Singleton {
 
 					$attributes = $user->toArray();
 					$email      = empty( $attributes['email'] ) ? '' : $attributes['email'];
-					$username   = empty( $attributes['preferred_username'] ) ? '' : $attributes['preferred_username'];;
+					$username   = empty( $attributes['preferred_username'] ) ? '' : $attributes['preferred_username'];
 
 					// Attempt to find an email address in the resource owner attributes
 					// if we couldn't find one in the `email` attribute.
@@ -494,10 +492,9 @@ class Authentication extends Singleton {
 					}
 				}
 			}
-
-		// Authenticate with the generic oauth2 client.
-		// See: https://github.com/thephpleague/oauth2-client.
 		} elseif ( 'generic' === $auth_settings['oauth2_provider'] ) {
+			// Authenticate with the generic oauth2 client.
+			// See: https://github.com/thephpleague/oauth2-client.
 			// Move on if required params aren't specified in settings.
 			if (
 				empty( $auth_settings['oauth2_url_authorize'] ) ||
@@ -531,14 +528,12 @@ class Authentication extends Singleton {
 				$_SESSION['oauth2state'] = $provider->getState();
 				header( 'Location: ' . $auth_url );
 				exit;
-
-			// Check state against previously stored one to mitigate CSRF attacks.
 			} elseif ( empty( $_REQUEST['state'] ) || empty( $_SESSION['oauth2state'] ) || $_REQUEST['state'] !== $_SESSION['oauth2state'] ) {
+				// Check state against previously stored one to mitigate CSRF attacks.
 				unset( $_SESSION['oauth2state'] );
 				exit;
-
-			// Try to get an access token (using the authorization code grant).
 			} else {
+				// Try to get an access token (using the authorization code grant).
 				try {
 					$token = $provider->getAccessToken( 'authorization_code', array(
 						'code' => $_REQUEST['code'],
@@ -592,9 +587,8 @@ class Authentication extends Singleton {
 					}
 				}
 			}
-
-		// Move on if a supported providers wasn't selected.
 		} else {
+			// Move on if a supported providers wasn't selected.
 			return null;
 		}
 
@@ -689,7 +683,7 @@ class Authentication extends Singleton {
 			$client::LIBVER >= '2.0.0'
 		) {
 			$google_hosteddomains = explode( "\n", str_replace( "\r", '', $auth_settings['google_hosteddomain'] ) );
-			$google_hosteddomain = trim( $google_hosteddomains[0] );
+			$google_hosteddomain  = trim( $google_hosteddomains[0] );
 			$client->setHostedDomain( $google_hosteddomain );
 		}
 
@@ -697,7 +691,7 @@ class Authentication extends Singleton {
 		// NOTE:  verifyIdToken originally returned an object as per src/OAuth2.php.
 		// However, it looks as though this function is overridden by src/Google/Client.php and returns an array instead
 		// in the v2 library.  Treating as an array for purposes of this functionality.
-		// See https://github.com/googleapis/google-api-php-client/blob/master/src/Google/AccessToken/Verify.php#L77
+		// See https://github.com/googleapis/google-api-php-client/blob/master/src/Google/AccessToken/Verify.php#L77.
 		try {
 			$ticket = $client->verifyIdToken( $token['id_token'], $auth_settings['google_clientid'] );
 		} catch ( Google_Auth_Exception $e ) {
@@ -716,7 +710,7 @@ class Authentication extends Singleton {
 		// json-encoded string instead of an array.
 		if ( is_object( $ticket ) && method_exists( $ticket, 'getAttributes' ) ) {
 			$attributes = $ticket->getAttributes();
-			$email = Helper::lowercase( $attributes['payload']['email'] );
+			$email      = Helper::lowercase( $attributes['payload']['email'] );
 		} else {
 			$email = Helper::lowercase( $ticket['email'] );
 		}
@@ -779,7 +773,11 @@ class Authentication extends Singleton {
 		$cas_version = Options\External\Cas::get_instance()->sanitize_cas_version( $auth_settings['cas_version'] );
 
 		// Set the CAS client configuration.
-		\phpCAS::client( $cas_version, $auth_settings['cas_host'], intval( $auth_settings['cas_port'] ), $auth_settings['cas_path'] );
+		if ( "PROXY" === strtoupper( $auth_settings['cas_method'] ) ) {
+			\phpCAS::proxy( $cas_version, $auth_settings['cas_host'], intval( $auth_settings['cas_port'] ), $auth_settings['cas_path'] );
+		} else {
+			\phpCAS::client( $cas_version, $auth_settings['cas_host'], intval( $auth_settings['cas_port'] ), $auth_settings['cas_path'] );
+		}
 
 		// Allow redirects at the CAS server endpoint (e.g., allow connections
 		// at an old CAS URL that redirects to a newer CAS URL).
@@ -801,6 +799,7 @@ class Authentication extends Singleton {
 
 		// Authenticate against CAS.
 		try {
+			// phpcs:ignore Squiz.PHP.CommentedOutCode
 			// \phpCAS::setDebug( dirname( __FILE__ ) . '/../../debug.log' );
 			\phpCAS::forceAuthentication();
 		} catch ( \CAS_AuthenticationException $e ) {
@@ -885,17 +884,31 @@ class Authentication extends Singleton {
 	 * @param  array  $auth_settings Plugin settings.
 	 * @param  string $username      Attempted username from authenticate action.
 	 * @param  string $password      Attempted password from authenticate action.
+	 * @param  array  $debug         If provided, filled with an array of debug
+	 *                               messages. Defaults to null.
+	 *
 	 * @return array|WP_Error        Array containing 'email' and 'authenticated_by' strings
 	 *                               for the successfully authenticated user, or WP_Error()
 	 *                               object on failure, or null if skipping LDAP auth and
 	 *                               falling back to WP auth.
 	 */
-	protected function custom_authenticate_ldap( $auth_settings, $username, $password ) {
+	public function custom_authenticate_ldap( $auth_settings, $username, $password, &$debug = null ) {
+		// Initialize debug array if a variable was passed in.
+		if ( ! is_null( $debug ) ) {
+			$debug = array(
+				/* TRANSLATORS: Current time */
+				sprintf( __( '[%s] Attempting to authenticate via LDAP.', 'authorizer' ), wp_date( get_option( 'time_format' ) ) ),
+			);
+		}
+
 		// Get LDAP host(s), and attempt each until we have a valid connection.
 		$ldap_hosts = explode( "\n", str_replace( "\r", '', trim( $auth_settings['ldap_host'] ) ) );
 
 		// Fail silently (fall back to WordPress authentication) if no LDAP host specified.
 		if ( count( $ldap_hosts ) < 1 ) {
+			if ( is_array( $debug ) ) {
+				$debug[] = __( 'Failed: no LDAP Host(s) specified.', 'authorizer' );
+			}
 			return null;
 		}
 
@@ -904,6 +917,9 @@ class Authentication extends Singleton {
 
 		// Fail silently (fall back to WordPress authentication) if no search base specified.
 		if ( count( $search_bases ) < 1 ) {
+			if ( is_array( $debug ) ) {
+				$debug[] = __( 'Failed: no LDAP Search Base(s) specified.', 'authorizer' );
+			}
 			return null;
 		}
 
@@ -934,19 +950,31 @@ class Authentication extends Singleton {
 		// for the first time, or when clicking the Log In button without filling
 		// out either field.
 		if ( empty( $username ) && empty( $password ) ) {
+			if ( is_array( $debug ) ) {
+				$debug[] = __( 'Failed: empty username and password.', 'authorizer' );
+			}
 			return null;
 		}
 
 		// Fail with error message if username or password is blank.
 		if ( empty( $username ) ) {
+			if ( is_array( $debug ) ) {
+				$debug[] = __( 'Failed: empty username.', 'authorizer' );
+			}
 			return new \WP_Error( 'empty_username', __( 'You must provide a username or email.', 'authorizer' ) );
 		}
 		if ( empty( $password ) ) {
+			if ( is_array( $debug ) ) {
+				$debug[] = __( 'Failed: empty password.', 'authorizer' );
+			}
 			return new \WP_Error( 'empty_password', __( 'You must provide a password.', 'authorizer' ) );
 		}
 
 		// If php5-ldap extension isn't installed on server, fall back to WP auth.
 		if ( ! function_exists( 'ldap_connect' ) ) {
+			if ( is_array( $debug ) ) {
+				$debug[] = __( 'Failed: php-ldap extension not installed.', 'authorizer' );
+			}
 			return null;
 		}
 
@@ -970,6 +998,10 @@ class Authentication extends Singleton {
 
 			// Fail if invalid host is specified.
 			if ( false === $parsed_host ) {
+				if ( is_array( $debug ) ) {
+					/* TRANSLATORS: LDAP Host */
+					$debug[] = sprintf( __( 'Warning: could not parse host %s with wp_parse_url().', 'authorizer' ), $ldap_host );
+				}
 				continue;
 			}
 
@@ -989,12 +1021,22 @@ class Authentication extends Singleton {
 
 			// Fail if we don't have a plausible LDAP URI.
 			if ( false === $ldap ) {
+				if ( is_array( $debug ) ) {
+					/* TRANSLATORS: LDAP Host */
+					$debug[] = sprintf( __( 'Warning: syntax check failed on host %s in ldap_connect().', 'authorizer' ), $ldap_host );
+				}
 				continue;
 			}
 
 			// Attempt to start TLS if that setting is checked and we're not using ldaps protocol.
 			if ( 1 === intval( $auth_settings['ldap_tls'] ) && false === strpos( $ldap_host, 'ldaps://' ) ) {
+				// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 				if ( ! @ldap_start_tls( $ldap ) ) {
+					if ( is_array( $debug ) ) {
+						/* TRANSLATORS: LDAP Host */
+						$debug[] = sprintf( __( 'Warning: unable to start TLS on host %s:', 'authorizer' ), $ldap_host );
+						$debug[] = ldap_error( $ldap );
+					}
 					continue;
 				}
 			}
@@ -1005,22 +1047,72 @@ class Authentication extends Singleton {
 			if ( strlen( $auth_settings['ldap_user'] ) > 0 ) {
 				$bind_rdn      = $auth_settings['ldap_user'];
 				$bind_password = Helper::decrypt( $auth_settings['ldap_password'] );
+
+				// If the bind user contains the [username] wildcard, replace it with
+				// the username and password of the user logging in.
+				if ( false !== strpos( $bind_rdn, '[username]' ) ) {
+					$bind_rdn      = str_replace( '[username]', $username, $bind_rdn );
+					$bind_password = $password;
+
+					if ( is_array( $debug ) ) {
+						/* TRANSLATORS: LDAP User DN */
+						$debug[] = sprintf( __( 'Performing bind as user logging in: %s.', 'authorizer' ), $bind_rdn );
+					}
+				}
 			}
 
 			// Attempt LDAP bind.
 			$result = @ldap_bind( $ldap, $bind_rdn, stripslashes( $bind_password ) ); // phpcs:ignore
 			if ( ! $result ) {
-				// Can't connect to LDAP, so fall back to WordPress authentication.
-				continue;
+				if ( is_array( $debug ) ) {
+					/* TRANSLATORS: LDAP Host */
+					$debug[] = sprintf( __( 'Warning: unable to bind on host %1$s using directory user:', 'authorizer' ), $ldap_host );
+					$debug[] = ldap_error( $ldap );
+				}
+
+				// We failed either an anonymous bind or a bind with a service account,
+				// so try to bind with the logging in user's credentials before failing.
+				// Note: multiple search bases can be provided, so iterate through them
+				// trying to bind as the user logging in.
+				foreach ( $search_bases as $search_base ) {
+					$bind_user_dn = $auth_settings['ldap_uid'] . '=' . $username . ',' . $search_base;
+					$result = @ldap_bind( $ldap, $bind_user_dn, stripslashes( $password ) ); // phpcs:ignore
+					if ( $result ) {
+						if ( is_array( $debug ) ) {
+							/* TRANSLATORS: LDAP User DN */
+							$debug[] = sprintf( __( 'Successful bind using LDAP user DN %s instead of directory user.', 'authorizer' ), $bind_user_dn );
+						}
+
+						break;
+					}
+				}
+
+				if ( ! $result ) {
+					if ( is_array( $debug ) ) {
+						/* TRANSLATORS: LDAP User */
+						$debug[] = sprintf( __( 'Failed: password incorrect for LDAP user %s.', 'authorizer' ), $username );
+						$debug[] = ldap_error( $ldap );
+					}
+
+					// Can't connect to LDAP, so fall back to WordPress authentication.
+					continue;
+				}
 			}
 
 			// If we've reached this, we have a valid ldap connection and bind.
 			$ldap_valid = true;
+			if ( is_array( $debug ) ) {
+				/* TRANSLATORS: LDAP Host */
+				$debug[] = sprintf( __( 'Connected to LDAP host %s.', 'authorizer' ), $ldap_host );
+			}
 			break;
 		}
 
 		// Move to next authentication method if we don't have a valid LDAP connection.
 		if ( ! $ldap_valid ) {
+			if ( is_array( $debug ) ) {
+				$debug[] = __( 'Failed: unable to connect to any LDAP host.', 'authorizer' );
+			}
 			return null;
 		}
 
@@ -1045,7 +1137,7 @@ class Authentication extends Singleton {
 		 * @param array $attributes LDAP attributes to retrieve in addition to first name, last name and email.
 		 */
 		$additional_ldap_attributes_to_retrieve = apply_filters( 'authorizer_additional_ldap_attributes_to_retrieve', array() );
-		$ldap_attributes_to_retrieve = array_merge($ldap_attributes_to_retrieve, $additional_ldap_attributes_to_retrieve);
+		$ldap_attributes_to_retrieve            = array_merge( $ldap_attributes_to_retrieve, $additional_ldap_attributes_to_retrieve );
 
 		// Create default LDAP search filter. If LDAP email attribute is provided,
 		// use (|(uid=$username)(mail=$username)) instead (so logins with either a
@@ -1078,22 +1170,38 @@ class Authentication extends Singleton {
 		 */
 		$search_filter = apply_filters( 'authorizer_ldap_search_filter', $search_filter, $auth_settings['ldap_uid'], $username );
 
+		if ( is_array( $debug ) ) {
+			/* TRANSLATORS: LDAP search filter */
+			$debug[] = sprintf( __( 'Using LDAP search filter: %s', 'authorizer' ), $search_filter );
+		}
+
 		// Multiple search bases can be provided, so iterate through them until a match is found.
 		foreach ( $search_bases as $search_base ) {
-			$ldap_search  = ldap_search(
+			$ldap_search  = @ldap_search( // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 				$ldap,
 				$search_base,
 				$search_filter,
 				$ldap_attributes_to_retrieve
 			);
-			$ldap_entries = ldap_get_entries( $ldap, $ldap_search );
+			$ldap_entries = empty( $ldap_search ) ? array( 'count' => 0 ) : ldap_get_entries( $ldap, $ldap_search );
 			if ( $ldap_entries['count'] > 0 ) {
+				if ( is_array( $debug ) ) {
+					/* TRANSLATORS: 1: LDAP user 2: LDAP search base */
+					$debug[] = sprintf( __( 'Found user %1$s in search base: %2$s', 'authorizer' ), $username, $search_base );
+				}
 				break;
+			} elseif ( is_array( $debug ) ) {
+				/* TRANSLATORS: 1: LDAP user 2: LDAP search base */
+				$debug[] = sprintf( __( 'Failed to find user %1$s in %2$s. Trying next search base.', 'authorizer' ), $username, $search_base );
 			}
 		}
 
 		// If we didn't find any users in ldap, fall back to WordPress authentication.
 		if ( $ldap_entries['count'] < 1 ) {
+			if ( is_array( $debug ) ) {
+				/* TRANSLATORS: LDAP User */
+				$debug[] = sprintf( __( 'Failed: no LDAP user %s found.', 'authorizer' ), $username );
+			}
 			return null;
 		}
 
@@ -1127,6 +1235,10 @@ class Authentication extends Singleton {
 
 		$result = @ldap_bind( $ldap, $ldap_user_dn, stripslashes( $password ) ); // phpcs:ignore
 		if ( ! $result ) {
+			if ( is_array( $debug ) ) {
+				/* TRANSLATORS: LDAP User */
+				$debug[] = sprintf( __( 'Failed: password incorrect for LDAP user %s.', 'authorizer' ), $username );
+			}
 			// We have a real ldap user, but an invalid password. Pass
 			// through to wp authentication after failing LDAP (since
 			// this could be a local account that happens to be the
@@ -1140,6 +1252,11 @@ class Authentication extends Singleton {
 		// If an LDAP attribute has been specified as containing the email address, use that instead.
 		if ( strlen( $email ) > 0 ) {
 			$externally_authenticated_email = Helper::lowercase( $email );
+		}
+
+		if ( is_array( $debug ) ) {
+			/* TRANSLATORS: 1: Current time 2: LDAP User 3: LDAP user email */
+			$debug[] = sprintf( __( '[%1$s] Successfully authenticated user %2$s (%3$s) via LDAP.', 'authorizer' ), wp_date( get_option( 'time_format' ) ), $username, $externally_authenticated_email );
 		}
 
 		return array(

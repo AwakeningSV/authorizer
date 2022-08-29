@@ -399,6 +399,7 @@
 		var auth_settings_external_cas_host = $( '#auth_settings_cas_host' ).closest( 'tr' );
 		var auth_settings_external_cas_port = $( '#auth_settings_cas_port' ).closest( 'tr' );
 		var auth_settings_external_cas_path = $( '#auth_settings_cas_path' ).closest( 'tr' );
+		var auth_settings_external_cas_method = $( '#auth_settings_cas_method' ).closest( 'tr' );
 		var auth_settings_external_cas_version = $( '#auth_settings_cas_version' ).closest( 'tr' );
 		var auth_settings_external_cas_attr_email = $( '#auth_settings_cas_attr_email' ).closest( 'tr' );
 		var auth_settings_external_cas_attr_first_name = $( '#auth_settings_cas_attr_first_name' ).closest( 'tr' );
@@ -419,6 +420,7 @@
 		var auth_settings_external_ldap_attr_first_name = $( '#auth_settings_ldap_attr_first_name' ).closest( 'tr' );
 		var auth_settings_external_ldap_attr_last_name = $( '#auth_settings_ldap_attr_last_name' ).closest( 'tr' );
 		var auth_settings_external_ldap_attr_update_on_login = $( '#auth_settings_ldap_attr_update_on_login' ).closest( 'tr' );
+		var auth_settings_external_ldap_test_user = $( '#auth_settings_ldap_test_user' ).closest( 'tr' );
 		/* eslint-enable */
 
 		// Wrap the th and td in the rows above so we can animate their heights (can't animate tr heights with jquery)
@@ -448,6 +450,7 @@
 		$( 'th, td', auth_settings_external_cas_host ).wrapInner( '<div class="animated_wrapper" />' );
 		$( 'th, td', auth_settings_external_cas_port ).wrapInner( '<div class="animated_wrapper" />' );
 		$( 'th, td', auth_settings_external_cas_path ).wrapInner( '<div class="animated_wrapper" />' );
+		$( 'th, td', auth_settings_external_cas_method ).wrapInner( '<div class="animated_wrapper" />' );
 		$( 'th, td', auth_settings_external_cas_version ).wrapInner( '<div class="animated_wrapper" />' );
 		$( 'th, td', auth_settings_external_cas_attr_email ).wrapInner( '<div class="animated_wrapper" />' );
 		$( 'th, td', auth_settings_external_cas_attr_first_name ).wrapInner( '<div class="animated_wrapper" />' );
@@ -468,13 +471,7 @@
 		$( 'th, td', auth_settings_external_ldap_attr_first_name ).wrapInner( '<div class="animated_wrapper" />' );
 		$( 'th, td', auth_settings_external_ldap_attr_last_name ).wrapInner( '<div class="animated_wrapper" />' );
 		$( 'th, td', auth_settings_external_ldap_attr_update_on_login ).wrapInner( '<div class="animated_wrapper" />' );
-
-		// If we're viewing the dashboard widget, reset a couple of the relevant
-		// option variables (since they aren't nested in table rows).
-		if ( $( '#auth_dashboard_widget' ).length ) {
-			// Remove the helper link, since there are no tabs on the dashboard widget
-			$( '#dashboard_link_approved_users' ).contents().unwrap();
-		}
+		$( 'th, td', auth_settings_external_ldap_test_user ).wrapInner( '<div class="animated_wrapper" />' );
 
 		// Hide settings unless "Only approved users" is checked
 		if ( ! $( '#radio_auth_settings_access_who_can_login_approved_users' ).is( ':checked' ) ) {
@@ -532,6 +529,7 @@
 			animateOption( 'hide_immediately', auth_settings_external_cas_host );
 			animateOption( 'hide_immediately', auth_settings_external_cas_port );
 			animateOption( 'hide_immediately', auth_settings_external_cas_path );
+			animateOption( 'hide_immediately', auth_settings_external_cas_method );
 			animateOption( 'hide_immediately', auth_settings_external_cas_version );
 			animateOption( 'hide_immediately', auth_settings_external_cas_attr_email );
 			animateOption( 'hide_immediately', auth_settings_external_cas_attr_first_name );
@@ -556,6 +554,7 @@
 			animateOption( 'hide_immediately', auth_settings_external_ldap_attr_first_name );
 			animateOption( 'hide_immediately', auth_settings_external_ldap_attr_last_name );
 			animateOption( 'hide_immediately', auth_settings_external_ldap_attr_update_on_login );
+			animateOption( 'hide_immediately', auth_settings_external_ldap_test_user );
 		}
 
 		// Event handler: Hide "Handle unauthorized visitors" option if access is granted to "Everyone"
@@ -622,6 +621,7 @@
 			animateOption( action, auth_settings_external_cas_host );
 			animateOption( action, auth_settings_external_cas_port );
 			animateOption( action, auth_settings_external_cas_path );
+			animateOption( action, auth_settings_external_cas_method );
 			animateOption( action, auth_settings_external_cas_version );
 			animateOption( action, auth_settings_external_cas_attr_email );
 			animateOption( action, auth_settings_external_cas_attr_first_name );
@@ -647,7 +647,27 @@
 			animateOption( action, auth_settings_external_ldap_attr_first_name );
 			animateOption( action, auth_settings_external_ldap_attr_last_name );
 			animateOption( action, auth_settings_external_ldap_attr_update_on_login );
+			animateOption( action, auth_settings_external_ldap_test_user );
 		});
+
+		// Event handler: Test LDAP settings.
+		$( '#ldap_test_user_submit' ).on( 'click', function( event ) {
+			event.preventDefault();
+			$( 'html' ).addClass( 'busy' );
+			$( '#ldap_test_user_spinner' ).addClass( 'is-active' );
+
+			$.post( ajaxurl, {
+				action: 'auth_settings_ldap_test_user',
+				username: $( 'input[name="auth_settings[ldap_test_user]"]' ).val(),
+				password: $( 'input#auth_settings_ldap_test_pass' ).val(),
+				nonce: $( '#nonce_save_auth_settings' ).val(),
+			}).done( function ( data ) {
+				$( '#ldap_test_user_result' ).show().val( data.message );
+			}).always( function () {
+				$( 'html' ).removeClass( 'busy' );
+				$( '#ldap_test_user_spinner' ).removeClass( 'is-active' );
+			});
+		} );
 
 		// Show save button if usermeta field is modified.
 		$( 'form input.auth-usermeta' ).on( 'keyup', function( event ) {
@@ -689,17 +709,21 @@
 			selectionHeader: '<div class="custom-header">' + authL10n.public_pages + '</div>',
 		});
 
-		// Switch to the first tab (or the tab indicated in sessionStorage, or the querystring).
-		var tab = '';
-		if ( getQuerystringValuesByKey( 'tab' ).length > 0 ) {
-			tab = getQuerystringValuesByKey( 'tab' )[0];
-		} else if ( sessionStorage.getItem( 'tab' ) ) {
-			tab = sessionStorage.getItem( 'tab' );
+		// Switch to the first tab (or the tab indicated in sessionStorage, or the
+		// querystring). Note: only do this on the settings page, not the dashboard
+		// widget.
+		if ( ! $( '#auth_dashboard_widget' ).length ) {
+			var tab = '';
+			if ( getQuerystringValuesByKey( 'tab' ).length > 0 ) {
+				tab = getQuerystringValuesByKey( 'tab' )[0];
+			} else if ( sessionStorage.getItem( 'tab' ) ) {
+				tab = sessionStorage.getItem( 'tab' );
+			}
+			if ( $.inArray( tab, [ 'access_lists', 'access_login', 'access_public', 'external', 'advanced' ] ) < 0 ) {
+				tab = 'access_lists';
+			}
+			window.chooseTab( tab, animationSpeed );
 		}
-		if ( $.inArray( tab, [ 'access_lists', 'access_login', 'access_public', 'external', 'advanced' ] ) < 0 ) {
-			tab = 'access_lists';
-		}
-		window.chooseTab( tab, animationSpeed );
 
 		// Hide/show multisite settings based on override checkbox.
 		$( 'input[name="auth_settings[multisite_override]"]' ).on( 'change', function() {
@@ -985,18 +1009,17 @@
 			);
 
 			// Add the new item.
-			var authJsPrefix = isMultisite ? 'authMultisite' : 'auth';
-			var banButton = ! isMultisite ? '<a class="button button-primary dashicons-before dashicons-remove' + ( list === 'approved' ? '' : ' invisible' ) + '" id="block_user_' + nextId + '" onclick="' + authJsPrefix + 'AddUser( this, \'blocked\', false ); ' + authJsPrefix + 'IgnoreUser( this, \'approved\' );" title="' + authL10n.block_ban_user + '"></a>' : '';
-			var ignoreButton = '<a class="button dashicons-before dashicons-no" id="ignore_user_' + nextId + '" onclick="' + authJsPrefix + 'IgnoreUser( this, \'' + list + '\' );" title="' + authL10n.remove_user + '"></a>';
-			var localIcon = '&nbsp;<a title="' + authL10n.local_wordpress_user + '" class="button disabled auth-local-user dashicons-before dashicons-businessperson' + ( shouldCreateLocalAccount ? '' : ' invisible' ) + '"></a>';
-			var multisiteIcon = '&nbsp;<a title="WordPress Multisite user" class="button disabled auth-multisite-user dashicons-before dashicons-admin-site'+ ( isMultisite ? '' : ' invisible' ) + '"></a>';
+			var authJsPrefix  = isMultisite ? 'authMultisite' : 'auth';
+			var multisiteIcon = isMultisite ? '<a title="WordPress Multisite user" class="button disabled auth-multisite-user dashicons-before dashicons-admin-site"></a>' : '';
+			var banButton     = isMultisite || 'approved' !== list ? '' : '<a class="button button-primary dashicons-before dashicons-remove" id="block_user_' + nextId + '" onclick="' + authJsPrefix + 'AddUser( this, \'blocked\', false ); ' + authJsPrefix + 'IgnoreUser( this, \'approved\' );" title="' + authL10n.block_ban_user + '"></a>';
+			var ignoreButton  = '<a class="button dashicons-before dashicons-no" id="ignore_user_' + nextId + '" onclick="' + authJsPrefix + 'IgnoreUser( this, \'' + list + '\' );" title="' + authL10n.remove_user + '"></a>';
 			$( ' \
 				<li id="new_user_' + nextId + '" class="new-user" style="display: none;"> \
 					<input type="text" id="auth_settings_access_users_' + list + '_' + nextId + '" name="auth_settings[access_users_' + list + '][' + nextId + '][email]" value="' + user.email + '" readonly="true" class="auth-email" /> \
 					<select name="auth_settings[access_users_' + list + '][' + nextId + '][role]" class="auth-role" onchange="' + authJsPrefix + 'ChangeRole( this );"> \
 					</select> \
 					<input type="text" name="auth_settings[access_users_' + list + '][' + nextId + '][date_added]" value="' + getShortDate() + '" readonly="true" class="auth-date-added" /> \
-					' + banButton + ignoreButton + localIcon + multisiteIcon + ' \
+					' + multisiteIcon + banButton + ignoreButton + ' \
 					<span class="spinner is-active"></span> \
 				</li> \
 			' ).appendTo( '#list_auth_settings_access_users_' + list ).slideDown( 250 );
@@ -1107,6 +1130,8 @@
 
 		var multisite_override = $( '#auth_settings_multisite_override' ).is( ':checked' ) ? '1' : '';
 
+		var prevent_override_multisite = $( '#auth_settings_prevent_override_multisite' ).is( ':checked' ) ? '1' : '';
+
 		var access_who_can_login = $( 'form input[name="auth_settings[access_who_can_login]"]:checked' ).val();
 
 		var access_who_can_view = $( 'form input[name="auth_settings[access_who_can_view]"]:checked' ).val();
@@ -1144,6 +1169,7 @@
 		var cas_host = $( '#auth_settings_cas_host' ).val();
 		var cas_port = $( '#auth_settings_cas_port' ).val();
 		var cas_path = $( '#auth_settings_cas_path' ).val();
+		var cas_method = $( '#auth_settings_cas_method' ).val();
 		var cas_version = $( '#auth_settings_cas_version' ).val();
 		var cas_attr_email = $( '#auth_settings_cas_attr_email' ).val();
 		var cas_attr_first_name = $( '#auth_settings_cas_attr_first_name' ).val();
@@ -1166,6 +1192,7 @@
 		var ldap_attr_first_name = $( '#auth_settings_ldap_attr_first_name' ).val();
 		var ldap_attr_last_name = $( '#auth_settings_ldap_attr_last_name' ).val();
 		var ldap_attr_update_on_login = $( '#auth_settings_ldap_attr_update_on_login' ).val();
+		var ldap_test_user = $( '#auth_settings_ldap_test_user' ).val();
 
 		var advanced_lockouts = {
 			attempts_1: $( '#auth_settings_advanced_lockouts_attempts_1' ).val(),
@@ -1185,6 +1212,7 @@
 			action: 'save_auth_multisite_settings',
 			nonce: nonce_save_auth_settings,
 			multisite_override: multisite_override,
+			prevent_override_multisite: prevent_override_multisite,
 			access_who_can_login: access_who_can_login,
 			access_who_can_view: access_who_can_view,
 			access_users_approved: access_users_approved,
@@ -1208,6 +1236,7 @@
 			cas_host: cas_host,
 			cas_port: cas_port,
 			cas_path: cas_path,
+			cas_method: cas_method,
 			cas_version: cas_version,
 			cas_attr_email: cas_attr_email,
 			cas_attr_first_name: cas_attr_first_name,
@@ -1229,6 +1258,7 @@
 			ldap_attr_first_name: ldap_attr_first_name,
 			ldap_attr_last_name: ldap_attr_last_name,
 			ldap_attr_update_on_login: ldap_attr_update_on_login,
+			ldap_test_user: ldap_test_user,
 			advanced_lockouts: advanced_lockouts,
 			advanced_hide_wp_login: advanced_hide_wp_login,
 			advanced_disable_wp_login: advanced_disable_wp_login,

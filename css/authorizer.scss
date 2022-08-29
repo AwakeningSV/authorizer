@@ -39,15 +39,6 @@
 		margin-bottom: 0;
 	}
 
-	// Fade multisite users (not editable).
-	.auth-multisite-username,
-	.auth-multisite-email,
-	.auth-multisite-role,
-	.auth-multisite-usermeta,
-	.auth-multisite-date-added {
-		opacity: 0.5;
-	}
-
 	// Demo CAS login button sizing.
 	.button.button-external {
 		padding: 3px 16px;
@@ -74,6 +65,17 @@
 			width: 120px;
 			display: inline;
 		}
+	}
+
+	// LDAP connection test.
+	#ldap_test_user_spinner {
+		float: none;
+	}
+	#ldap_test_user_result {
+		font-family: monospace;
+		width: 100%;
+		opacity: 0.8;
+		color: black;
 	}
 
 	// Mobile screen sizing.
@@ -168,11 +170,13 @@
 
 	// Flex layout for user lists (pending, approved, blocked).
 	#list_auth_settings_access_users_pending li,
-	#new_auth_settings_access_users_pending,
 	#list_auth_settings_access_users_approved li,
 	#new_auth_settings_access_users_approved,
 	#list_auth_settings_access_users_blocked li,
 	#new_auth_settings_access_users_blocked {
+		display: flex;
+		justify-content: flex-start;
+
 		// Spacing between elements.
 		& > :not(:last-child) { margin-right: 4px; }
 
@@ -185,27 +189,35 @@
 
 // Target just the Dashboard widget.
 #auth_dashboard_widget {
+	// Style the settings icon in the meta box header.
+	.js-toggle-auth_settings_dashboard_widget_control {
+		display: inline-block;
+	 .toggle-indicator:before {
+			content: "\f111";
+			display: inline-block;
+			font: normal 20px/1 dashicons;
+		}
+	}
+
 	// Disable fixed height in table nav (widget usually too narrow so search
 	// wraps to second line).
 	.tablenav {
 		height: auto;
 
-		.tablenav-pages {
-			float: none;
-		}
-
-		#user-search-input {
-			max-width: 80px;
+		// Fix offset current page input relative to pager buttons.
+		.current-page {
+			margin-top: -4px;
 		}
 	}
 
 	// Tighter flex layout for user lists (pending, approved, blocked).
 	#list_auth_settings_access_users_pending li,
-	#new_auth_settings_access_users_pending,
 	#list_auth_settings_access_users_approved li,
 	#new_auth_settings_access_users_approved,
 	#list_auth_settings_access_users_blocked li,
 	#new_auth_settings_access_users_blocked {
+		display: flex;
+		justify-content: flex-start;
 		flex-wrap: wrap;
 		margin-bottom: 12px;
 
@@ -218,7 +230,7 @@
 		& > :nth-child(1) { flex-grow: 1; }
 
 		// Shrink role dropdown.
-		.auth-role { max-width: 80px; }
+		.auth-role { max-width: 140px; }
 
 		// Specifically shrink fields when near media breakpoints to prevent
 		// wrapping to a second line when it's "really close."
@@ -243,11 +255,13 @@
 	}
 
 	// Use flexbox to keep everything on one line in approved list.
-	#list_auth_settings_access_users_approved li {
+	#list_auth_settings_access_users_pending li,
+	#list_auth_settings_access_users_approved li,
+	#new_auth_settings_access_users_approved {
 		flex-wrap: nowrap;
 		& > * { flex: 0 0 auto; }
 		& > :nth-child(1) { flex-shrink: 1; }
-		& > :nth-child(2) { flex-shrink: 1; }
+		& > :nth-child(2) { flex-shrink: 2; }
 		& > :nth-child(3) { flex-shrink: 2; }
 		& > :nth-child(4) { flex-shrink: 2; }
 		& > :nth-child(5) { flex-shrink: 1; }
@@ -271,17 +285,6 @@
 	// Room at the bottom for logo.
 	#wpbody-content {
 		padding-bottom: 240px;
-	}
-
-	// Flex layout for user lists (pending, approved, blocked).
-	#list_auth_settings_access_users_pending li,
-	#new_auth_settings_access_users_pending,
-	#list_auth_settings_access_users_approved li,
-	#new_auth_settings_access_users_approved,
-	#list_auth_settings_access_users_blocked li,
-	#new_auth_settings_access_users_blocked {
-		display: flex;
-		justify-content: flex-start;
 	}
 
 	// Hide Role dropdown on Blocked user list.
@@ -308,6 +311,15 @@
 			background-color: $color-red-5;
 			border-color: $color-red-20;
 		}
+	}
+
+	// Fade multisite users (not editable).
+	.auth-multisite-username,
+	.auth-multisite-email,
+	.auth-multisite-role,
+	.auth-multisite-usermeta,
+	.auth-multisite-date-added {
+		opacity: 0.5;
 	}
 
 	// Cap max size of date and meta (no need for them to grow large).

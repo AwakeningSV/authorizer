@@ -38,6 +38,9 @@ class Options extends Singleton {
 		// Get all plugin options.
 		$auth_settings = $this->get_all( $admin_mode, $override_mode );
 
+		// Get multisite options (for checking if multisite override is prevented).
+		$auth_multisite_settings = is_multisite() ? get_blog_option( get_network()->blog_id, 'auth_multisite_settings', array() ) : array();
+
 		// Set option to null if it wasn't found.
 		if ( ! array_key_exists( $option, $auth_settings ) ) {
 			return null;
@@ -51,7 +54,11 @@ class Options extends Singleton {
 			'print overlay' === $print_mode &&
 			array_key_exists( 'multisite_override', $auth_settings ) &&
 			'1' === $auth_settings['multisite_override'] &&
-			( ! array_key_exists( 'advanced_override_multisite', $auth_settings ) || 1 !== intval( $auth_settings['advanced_override_multisite'] ) )
+			(
+				! array_key_exists( 'advanced_override_multisite', $auth_settings ) ||
+				1 !== intval( $auth_settings['advanced_override_multisite'] ) ||
+				! empty( $auth_multisite_settings['prevent_override_multisite'] )
+			)
 		) {
 			// Get original plugin options (not overridden value). We'll
 			// show this old value behind the disabled overlay.
@@ -79,9 +86,14 @@ class Options extends Singleton {
 			<?php
 		}
 
-		// If we're getting an option in a site that has overridden the multisite override, make
-		// sure we are returning the option value from that site (not the multisite value).
-		if ( array_key_exists( 'advanced_override_multisite', $auth_settings ) && 1 === intval( $auth_settings['advanced_override_multisite'] ) ) {
+		// If we're getting an option in a site that has overridden the multisite
+		// override (and is not prevented from doing so), make sure we are returning
+		// the option value from that site (not the multisite value).
+		if (
+			array_key_exists( 'advanced_override_multisite', $auth_settings ) &&
+			1 === intval( $auth_settings['advanced_override_multisite'] ) &&
+			empty( $auth_multisite_settings['prevent_override_multisite'] )
+		) {
 			$auth_settings = $this->get_all( $admin_mode, 'no override' );
 		}
 
@@ -109,8 +121,8 @@ class Options extends Singleton {
 			$auth_settings = $this->set_default_options();
 		}
 
-		// Merge multisite options if we're in a network and the current site hasn't overridden multisite settings.
-		if ( is_multisite() && ( ! array_key_exists( 'advanced_override_multisite', $auth_settings ) || 1 !== intval( $auth_settings['advanced_override_multisite'] ) ) ) {
+		// Merge multisite options if we're in a network.
+		if ( is_multisite() ) {
 			// Get multisite options.
 			$auth_multisite_settings = get_blog_option( get_network()->blog_id, 'auth_multisite_settings', array() );
 
@@ -123,8 +135,19 @@ class Options extends Singleton {
 				array_key_exists( 'multisite_override', $auth_multisite_settings ) &&
 				'1' === $auth_multisite_settings['multisite_override']
 			) {
-				// Keep track of the multisite override selection.
-				$auth_settings['multisite_override'] = $auth_multisite_settings['multisite_override'];
+				// Keep track of the multisite override (and prevention) selection.
+				$auth_settings['multisite_override']         = $auth_multisite_settings['multisite_override'];
+				$auth_settings['prevent_override_multisite'] = $auth_multisite_settings['prevent_override_multisite'];
+
+				// Don't merge multisite options if the current site has overridden them
+				// (and isn't prevented from doing so).
+				if (
+					array_key_exists( 'advanced_override_multisite', $auth_settings ) &&
+					1 === intval( $auth_settings['advanced_override_multisite'] ) &&
+					empty( $auth_settings['prevent_override_multisite'] )
+				) {
+					return $auth_settings;
+				}
 
 				/**
 				 * Note: the options below should be the complete list of overridden
@@ -163,6 +186,7 @@ class Options extends Singleton {
 				$auth_settings['cas_host']                  = $auth_multisite_settings['cas_host'];
 				$auth_settings['cas_port']                  = $auth_multisite_settings['cas_port'];
 				$auth_settings['cas_path']                  = $auth_multisite_settings['cas_path'];
+				$auth_settings['cas_method']                = $auth_multisite_settings['cas_method'];
 				$auth_settings['cas_version']               = $auth_multisite_settings['cas_version'];
 				$auth_settings['cas_attr_email']            = $auth_multisite_settings['cas_attr_email'];
 				$auth_settings['cas_attr_first_name']       = $auth_multisite_settings['cas_attr_first_name'];
@@ -184,6 +208,7 @@ class Options extends Singleton {
 				$auth_settings['ldap_attr_first_name']      = $auth_multisite_settings['ldap_attr_first_name'];
 				$auth_settings['ldap_attr_last_name']       = $auth_multisite_settings['ldap_attr_last_name'];
 				$auth_settings['ldap_attr_update_on_login'] = $auth_multisite_settings['ldap_attr_update_on_login'];
+				$auth_settings['ldap_test_user']            = $auth_multisite_settings['ldap_test_user'];
 
 				// Override access_who_can_login and access_who_can_view.
 				$auth_settings['access_who_can_login'] = $auth_multisite_settings['access_who_can_login'];
@@ -370,6 +395,9 @@ class Options extends Singleton {
 		if ( ! array_key_exists( 'cas_path', $auth_settings ) ) {
 			$auth_settings['cas_path'] = '';
 		}
+		if ( ! array_key_exists( 'cas_method', $auth_settings ) ) {
+			$auth_settings['cas_method'] = Options\External\Cas::get_instance()->sanitize_cas_method();
+		}
 		if ( ! array_key_exists( 'cas_version', $auth_settings ) ) {
 			$auth_settings['cas_version'] = Options\External\Cas::get_instance()->sanitize_cas_version();
 		}
@@ -431,6 +459,9 @@ class Options extends Singleton {
 		if ( ! array_key_exists( 'ldap_attr_update_on_login', $auth_settings ) ) {
 			$auth_settings['ldap_attr_update_on_login'] = '';
 		}
+		if ( ! array_key_exists( 'ldap_test_user', $auth_settings ) ) {
+			$auth_settings['ldap_test_user'] = '';
+		}
 
 		// Advanced defaults.
 		if ( ! array_key_exists( 'advanced_lockouts', $auth_settings ) ) {
@@ -489,6 +520,10 @@ class Options extends Singleton {
 			// Global switch for enabling multisite options.
 			if ( ! array_key_exists( 'multisite_override', $auth_multisite_settings ) ) {
 				$auth_multisite_settings['multisite_override'] = '';
+			}
+			// Global switch for preventing sites from overriding multisite options.
+			if ( ! array_key_exists( 'prevent_override_multisite', $auth_multisite_settings ) ) {
+				$auth_multisite_settings['prevent_override_multisite'] = '';
 			}
 			// Access Lists Defaults.
 			$auth_multisite_settings_access_users_approved = get_blog_option( get_network()->blog_id, 'auth_multisite_settings_access_users_approved' );
@@ -574,6 +609,9 @@ class Options extends Singleton {
 			if ( ! array_key_exists( 'cas_path', $auth_multisite_settings ) ) {
 				$auth_multisite_settings['cas_path'] = '';
 			}
+			if ( ! array_key_exists( 'cas_method', $auth_multisite_settings ) ) {
+				$auth_multisite_settings['cas_method'] = Options\External\Cas::get_instance()->sanitize_cas_method();
+			}
 			if ( ! array_key_exists( 'cas_version', $auth_multisite_settings ) ) {
 				$auth_multisite_settings['cas_version'] = Options\External\Cas::get_instance()->sanitize_cas_version();
 			}
@@ -633,6 +671,9 @@ class Options extends Singleton {
 			}
 			if ( ! array_key_exists( 'ldap_attr_update_on_login', $auth_multisite_settings ) ) {
 				$auth_multisite_settings['ldap_attr_update_on_login'] = '';
+			}
+			if ( ! array_key_exists( 'ldap_test_user', $auth_multisite_settings ) ) {
+				$auth_multisite_settings['ldap_test_user'] = '';
 			}
 			// Advanced defaults.
 			if ( ! array_key_exists( 'advanced_lockouts', $auth_multisite_settings ) ) {

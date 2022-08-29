@@ -36,7 +36,7 @@ class Admin_Page extends Singleton {
 		$screen = get_current_screen();
 
 		// Don't print any help items if not on the Authorizer Settings page.
-		if ( empty( $screen->id ) || ! in_array( $screen->id, array( 'toplevel_page_authorizer-network', 'toplevel_page_authorizer', 'settings_page_authorizer' ) ) ) {
+		if ( empty( $screen->id ) || ! in_array( $screen->id, array( 'toplevel_page_authorizer-network', 'toplevel_page_authorizer', 'settings_page_authorizer' ), true ) ) {
 			return;
 		}
 
@@ -95,11 +95,11 @@ class Admin_Page extends Singleton {
 			<p>' . __( '<strong>Default role for new CAS users</strong>: Specify which role new external users will get by default. Be sure to choose a role with limited permissions!', 'authorizer' ) . '</p>
 			<p><strong><em>' . __( 'If you enable OAuth2 logins:', 'authorizer' ) . '</em></strong></p>
 			<ul>
-				<li>' . __( "<strong>Client ID</strong>: You can generate this ID following the instructions for your specific provider.", 'authorizer' ) . '</li>
-				<li>' . __( "<strong>Client Secret</strong>: You can generate this secret by following the instructions for your specific provider.", 'authorizer' ) . '</li>
-				<li>' . __( "<strong>Authorization URL</strong>: For the generic OAuth2 provider, you will need to specify the 3 endpoints required for the oauth2 authentication flow. This is the first: the endpoint first contacted to initiate the authentication.", 'authorizer' ) . '</li>
-				<li>' . __( "<strong>Access Token URL</strong>: For the generic OAuth2 provider, you will need to specify the 3 endpoints required for the oauth2 authentication flow. This is the second: the endpoint that is contacted after initiation to retrieve an access token for the user that just authenticated.", 'authorizer' ) . '</li>
-				<li>' . __( "<strong>Resource Owner URL</strong>: For the generic OAuth2 provider, you will need to specify the 3 endpoints required for the oauth2 authentication flow. This is the third: the endpoint that is contacted after successfully receiving an authentication token to retrieve details on the user that just authenticated.", 'authorizer' ) . '</li>
+				<li>' . __( '<strong>Client ID</strong>: You can generate this ID following the instructions for your specific provider.', 'authorizer' ) . '</li>
+				<li>' . __( '<strong>Client Secret</strong>: You can generate this secret by following the instructions for your specific provider.', 'authorizer' ) . '</li>
+				<li>' . __( '<strong>Authorization URL</strong>: For the generic OAuth2 provider, you will need to specify the 3 endpoints required for the oauth2 authentication flow. This is the first: the endpoint first contacted to initiate the authentication.', 'authorizer' ) . '</li>
+				<li>' . __( '<strong>Access Token URL</strong>: For the generic OAuth2 provider, you will need to specify the 3 endpoints required for the oauth2 authentication flow. This is the second: the endpoint that is contacted after initiation to retrieve an access token for the user that just authenticated.', 'authorizer' ) . '</li>
+				<li>' . __( '<strong>Resource Owner URL</strong>: For the generic OAuth2 provider, you will need to specify the 3 endpoints required for the oauth2 authentication flow. This is the third: the endpoint that is contacted after successfully receiving an authentication token to retrieve details on the user that just authenticated.', 'authorizer' ) . '</li>
 			</ul>
 			<p><strong><em>' . __( 'If you enable Google logins:', 'authorizer' ) . '</em></strong></p>
 			<ul>
@@ -111,6 +111,7 @@ class Admin_Page extends Singleton {
 				<li>' . __( '<strong>CAS server hostname</strong>: Enter the hostname of the CAS server you authenticate against (e.g., authn.example.edu).', 'authorizer' ) . '</li>
 				<li>' . __( '<strong>CAS server port</strong>: Enter the port on the CAS server to connect to (e.g., 443).', 'authorizer' ) . '</li>
 				<li>' . __( '<strong>CAS server path/context</strong>: Enter the path to the login endpoint on the CAS server (e.g., /cas).', 'authorizer' ) . '</li>
+				<li>' . __( '<strong>CAS server method</strong>: Select the method to use when setting the CAS config (e.g.,"client" or "proxy")', 'authorizer' ) . '</li>
 				<li>' . __( "<strong>CAS attribute containing first name</strong>: Enter the CAS attribute that has the user's first name. When this user first logs in, their WordPress account will have their first name retrieved from CAS and added to their WordPress profile.", 'authorizer' ) . '</li>
 				<li>' . __( "<strong>CAS attribute containing last name</strong>: Enter the CAS attribute that has the user's last name. When this user first logs in, their WordPress account will have their last name retrieved from CAS and added to their WordPress profile.", 'authorizer' ) . '</li>
 				<li>' . __( '<strong>CAS attribute update</strong>: Select whether the first and last names retrieved from CAS should overwrite any value the user has entered in the first and last name fields in their WordPress profile. If this is not set, this only happens the first time they log in.', 'authorizer' ) . '</li>
@@ -529,6 +530,13 @@ class Admin_Page extends Singleton {
 			'auth_settings_external'
 		);
 		add_settings_field(
+			'auth_settings_cas_method',
+			__( 'CAS server method', 'authorizer' ),
+			array( Cas::get_instance(), 'print_select_cas_method' ),
+			'authorizer',
+			'auth_settings_external'
+		);
+		add_settings_field(
 			'auth_settings_cas_version',
 			__( 'CAS server protocol', 'authorizer' ),
 			array( Cas::get_instance(), 'print_select_cas_version' ),
@@ -675,6 +683,13 @@ class Admin_Page extends Singleton {
 			'authorizer',
 			'auth_settings_external'
 		);
+		add_settings_field(
+			'auth_settings_ldap_test_user',
+			__( 'LDAP test connection', 'authorizer' ),
+			array( Ldap::get_instance(), 'print_text_button_ldap_test_user' ),
+			'authorizer',
+			'auth_settings_external'
+		);
 
 		// Create Advanced Settings section.
 		add_settings_section(
@@ -811,7 +826,8 @@ class Admin_Page extends Singleton {
 				<h2><?php esc_html_e( 'Authorizer Settings', 'authorizer' ); ?></h2>
 				<p><?php echo wp_kses( __( 'Most <strong>Authorizer</strong> settings are set in the individual sites, but you can specify a few options here that apply to <strong>all sites in the network</strong>. These settings will override settings in the individual sites.', 'authorizer' ), Helper::$allowed_html ); ?></p>
 
-				<input type="checkbox" id="auth_settings_multisite_override" name="auth_settings[multisite_override]" value="1"<?php checked( 1 === intval( $auth_settings['multisite_override'] ) ); ?> /><label for="auth_settings_multisite_override"><?php esc_html_e( 'Override individual site settings with the settings below', 'authorizer' ); ?></label>
+				<p><input type="checkbox" id="auth_settings_multisite_override" name="auth_settings[multisite_override]" value="1"<?php checked( 1 === intval( $auth_settings['multisite_override'] ) ); ?> /><label for="auth_settings_multisite_override"><?php esc_html_e( 'Override individual site settings with the settings below', 'authorizer' ); ?></label></p>
+				<p><input type="checkbox" id="auth_settings_prevent_override_multisite" name="auth_settings[prevent_override_multisite]" value="1"<?php checked( 1 === intval( $auth_settings['prevent_override_multisite'] ) ); ?> /><label for="auth_settings_prevent_override_multisite"><?php esc_html_e( 'Prevent site administrators from overriding any multisite settings defined here (via Authorizer > Advanced > Override multisite options)', 'authorizer' ); ?></label></p>
 
 				<div id="auth_multisite_settings_disabled_overlay" style="display: none;"></div>
 
@@ -922,6 +938,10 @@ class Admin_Page extends Singleton {
 							<td><?php $cas->print_text_cas_path( array( 'context' => Helper::NETWORK_CONTEXT ) ); ?></td>
 						</tr>
 						<tr>
+							<th scope="row"><?php esc_html_e( 'CAS server method', 'authorizer' ); ?></th>
+							<td><?php $cas->print_select_cas_method( array( 'context' => Helper::NETWORK_CONTEXT ) ); ?></td>
+						</tr>
+						<tr>
 							<th scope="row"><?php esc_html_e( 'CAS server protocol', 'authorizer' ); ?></th>
 							<td><?php $cas->print_select_cas_version( array( 'context' => Helper::NETWORK_CONTEXT ) ); ?></td>
 						</tr>
@@ -1004,6 +1024,10 @@ class Admin_Page extends Singleton {
 						<tr>
 							<th scope="row"><?php esc_html_e( 'LDAP attribute update', 'authorizer' ); ?></th>
 							<td><?php $ldap->print_select_ldap_attr_update_on_login( array( 'context' => Helper::NETWORK_CONTEXT ) ); ?></td>
+						</tr>
+						<tr>
+							<th scope="row"><?php esc_html_e( 'LDAP test connection', 'authorizer' ); ?></th>
+							<td><?php $ldap->print_text_button_ldap_test_user( array( 'context' => Helper::NETWORK_CONTEXT ) ); ?></td>
 						</tr>
 					</tbody></table>
 
@@ -1109,7 +1133,7 @@ class Admin_Page extends Singleton {
 	 * Action: admin_head-index.php
 	 */
 	public function load_options_page() {
-		wp_enqueue_script( 'authorizer', plugins_url( 'js/authorizer.js', plugin_root() ), array( 'jquery-effects-shake' ), '3.2.0', true );
+		wp_enqueue_script( 'authorizer', plugins_url( 'js/authorizer.js', plugin_root() ), array( 'jquery-effects-shake' ), '3.4.1', true );
 		wp_localize_script(
 			'authorizer',
 			'authL10n',
@@ -1137,7 +1161,7 @@ class Admin_Page extends Singleton {
 
 		wp_enqueue_script( 'jquery.multi-select', plugins_url( 'vendor/components/multi-select/js/jquery.multi-select.min.js', plugin_root() ), array( 'jquery' ), '0.9.12', true );
 
-		wp_register_style( 'authorizer-css', plugins_url( 'css/authorizer.css', plugin_root() ), array(), '3.0.8' );
+		wp_register_style( 'authorizer-css', plugins_url( 'css/authorizer.css', plugin_root() ), array(), '3.3.0' );
 		wp_enqueue_style( 'authorizer-css' );
 
 		wp_register_style( 'jquery-multi-select-css', plugins_url( 'vendor/components/multi-select/css/multi-select.min.css', plugin_root() ), array(), '0.9.12' );
