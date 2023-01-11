@@ -404,6 +404,18 @@ class Authentication extends Singleton {
 			// See: https://github.com/thenetworg/oauth2-azure.
 			session_start();
 			try {
+				// Save the redirect URL for WordPress so we can restore it after a
+				// successful login (note: we can't add the redirect_to querystring
+				// param to the redirectUri param below because it won't match the
+				// approved URI set in the Azure portal).
+				$login_querystring = array();
+				if ( isset( $_SERVER['QUERY_STRING'] ) ) {
+					parse_str( $_SERVER['QUERY_STRING'], $login_querystring ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+				}
+				if ( isset( $login_querystring['redirect_to'] ) ) {
+					$_SESSION['azure_redirect_to'] = $login_querystring['redirect_to'];
+				}
+
 				$provider = new \TheNetworg\OAuth2\Client\Provider\Azure( array(
 					'clientId'     => $auth_settings['oauth2_clientid'],
 					'clientSecret' => $auth_settings['oauth2_clientsecret'],
@@ -659,7 +671,7 @@ class Authentication extends Singleton {
 
 		// Get one time use token.
 		session_start();
-		$token = array_key_exists( 'token', $_SESSION ) ? json_decode( $_SESSION['token'], true ) : null;
+		$token = array_key_exists( 'token', $_SESSION ) ? $_SESSION['token'] : null;
 
 		// No token, so this is not a succesful Google login.
 		if ( empty( $token ) ) {
@@ -688,32 +700,20 @@ class Authentication extends Singleton {
 		}
 
 		// Verify this is a successful Google authentication.
-		// NOTE:  verifyIdToken originally returned an object as per src/OAuth2.php.
-		// However, it looks as though this function is overridden by src/Google/Client.php and returns an array instead
-		// in the v2 library.  Treating as an array for purposes of this functionality.
-		// See https://github.com/googleapis/google-api-php-client/blob/master/src/Google/AccessToken/Verify.php#L77.
 		try {
-			$ticket = $client->verifyIdToken( $token['id_token'], $auth_settings['google_clientid'] );
+			$payload = $client->verifyIdToken( $token );
 		} catch ( Google_Auth_Exception $e ) {
 			// Invalid ticket, so this in not a successful Google login.
 			return new \WP_Error( 'invalid_google_login', __( 'Invalid Google credentials provided.', 'authorizer' ) );
 		}
 
 		// Invalid ticket, so this in not a successful Google login.
-		if ( ! $ticket ) {
+		if ( empty( $payload['email'] ) ) {
 			return new \WP_Error( 'invalid_google_login', __( 'Invalid Google credentials provided.', 'authorizer' ) );
 		}
 
 		// Get email address.
-		// Edge case: if another plugin has already defined the Google_Client class,
-		// and it's a version earlier than v2, then we need to handle $token as a
-		// json-encoded string instead of an array.
-		if ( is_object( $ticket ) && method_exists( $ticket, 'getAttributes' ) ) {
-			$attributes = $ticket->getAttributes();
-			$email      = Helper::lowercase( $attributes['payload']['email'] );
-		} else {
-			$email = Helper::lowercase( $ticket['email'] );
-		}
+		$email = Helper::lowercase( $payload['email'] );
 
 		$email_domain = substr( strrchr( $email, '@' ), 1 );
 		$username     = current( explode( '@', $email ) );
@@ -745,7 +745,7 @@ class Authentication extends Singleton {
 			'first_name'        => '',
 			'last_name'         => '',
 			'authenticated_by'  => 'google',
-			'google_attributes' => $ticket,
+			'google_attributes' => $payload,
 		);
 	}
 
@@ -772,11 +772,18 @@ class Authentication extends Singleton {
 		 */
 		$cas_version = Options\External\Cas::get_instance()->sanitize_cas_version( $auth_settings['cas_version'] );
 
+		/**
+		 * Get valid service URLs for the CAS client to validate against.
+		 *
+		 * @see: https://github.com/apereo/phpCAS/security/advisories/GHSA-8q72-6qq8-xv64
+		 */
+		$valid_base_urls = Options\External\Cas::get_instance()->get_valid_cas_service_urls();
+
 		// Set the CAS client configuration.
 		if ( "PROXY" === strtoupper( $auth_settings['cas_method'] ) ) {
-			\phpCAS::proxy( $cas_version, $auth_settings['cas_host'], intval( $auth_settings['cas_port'] ), $auth_settings['cas_path'] );
+			\phpCAS::proxy( $cas_version, $auth_settings['cas_host'], intval( $auth_settings['cas_port'] ), $auth_settings['cas_path'], $valid_base_urls );
 		} else {
-			\phpCAS::client( $cas_version, $auth_settings['cas_host'], intval( $auth_settings['cas_port'] ), $auth_settings['cas_path'] );
+			\phpCAS::client( $cas_version, $auth_settings['cas_host'], intval( $auth_settings['cas_port'] ), $auth_settings['cas_path'], $valid_base_urls );
 		}
 
 		// Allow redirects at the CAS server endpoint (e.g., allow connections
@@ -1316,8 +1323,19 @@ class Authentication extends Singleton {
 				 */
 				$cas_version = Options\External\Cas::get_instance()->sanitize_cas_version( $auth_settings['cas_version'] );
 
+				/**
+				 * Get valid service URLs for the CAS client to validate against.
+				 *
+				 * @see: https://github.com/apereo/phpCAS/security/advisories/GHSA-8q72-6qq8-xv64
+				 */
+				$valid_base_urls = Options\External\Cas::get_instance()->get_valid_cas_service_urls();
+
 				// Set the CAS client configuration if it hasn't been set already.
-				\phpCAS::client( $cas_version, $auth_settings['cas_host'], intval( $auth_settings['cas_port'] ), $auth_settings['cas_path'] );
+				if ( "PROXY" === strtoupper( $auth_settings['cas_method'] ) ) {
+					\phpCAS::proxy( $cas_version, $auth_settings['cas_host'], intval( $auth_settings['cas_port'] ), $auth_settings['cas_path'], $valid_base_urls );
+				} else {
+					\phpCAS::client( $cas_version, $auth_settings['cas_host'], intval( $auth_settings['cas_port'] ), $auth_settings['cas_path'], $valid_base_urls );
+				}
 				// Allow redirects at the CAS server endpoint (e.g., allow connections
 				// at an old CAS URL that redirects to a newer CAS URL).
 				\phpCAS::setExtraCurlOption( CURLOPT_FOLLOWLOCATION, true );
@@ -1342,15 +1360,6 @@ class Authentication extends Singleton {
 		if ( 'google' === self::$authenticated_by || array_key_exists( 'token', $_SESSION ) ) {
 			$token = $_SESSION['token'];
 
-			// Edge case: if another plugin has already defined the Google_Client class,
-			// and it's a version earlier than v2, then we need to handle $token as a
-			// json-encoded string instead of an array.
-			if ( ! is_array( $token ) ) {
-				$token = json_decode( $token, true );
-			}
-
-			$access_token = isset( $token['access_token'] ) ? $token['access_token'] : null;
-
 			// Build the Google Client.
 			$client = new \Google_Client();
 			$client->setApplicationName( 'WordPress' );
@@ -1359,7 +1368,7 @@ class Authentication extends Singleton {
 			$client->setRedirectUri( 'postmessage' );
 
 			// Revoke the token.
-			$client->revokeToken( $access_token );
+			$client->revokeToken( $token );
 
 			// Remove the credentials from the user's session.
 			unset( $_SESSION['token'] );

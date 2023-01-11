@@ -1,7 +1,7 @@
 === Authorizer ===
 Contributors: figureone, the_magician, pkarjala, aargh-a-knot, elarequi, jojaba, slyraskal
 Tags: cas, ldap, google, google plus, login, authentication, authorization, access, education, limit login attempts, oauth
-Tested up to: 6.0
+Tested up to: 6.1
 Stable tag: trunk
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -61,6 +61,23 @@ The [University of Hawai'i][uh], which provides authentication for student, facu
 12. Authorizer Option overridden by a Network Admin Option.
 
 == Changelog ==
+
+= 3.6.0 =
+* Security: update to [phpCAS 1.6.0](https://github.com/apereo/phpCAS/releases/tag/1.6.0) to address CVE-2022-39369.
+* Update composer dependencies (google/apiclient-services 0.271.0 => 0.272.1; google/auth 1.23.0 => 1.23.1; firebase/php-jwt 6.3.0 => 6.3.1; guzzlehttp/psr7 2.4.1 => 2.4.3; phpseclib/phpseclib 3.0.16 => 3.0.17).
+* Fix CAS logouts on proxied CAS servers.
+* Set default values for missed multisite option ldap_test_user.
+* Respect redirect_to param to wp-login.php with Azure logins. Props @manakuke for discovering the [issue](https://github.com/uhm-coe/authorizer/commit/a3d28a91c4ef6bdb32a567f4e5073ed250577ee3)!
+
+= 3.5.0 =
+* Migrate Google Sign-In to Google Identity Services library. Details [here](https://developers.google.com/identity/gsi/web/guides/migration).
+* Fix inconsistent labels by network users in the approved list (WordPress multisite).
+* Update composer dependencies (google/apiclient-services v0.269.0 => v0.271.0).
+
+= 3.4.2 =
+* Update French translations. Props @julienlusson!
+* Fix password reset for WordPress users when "Immediately redirect to CAS login form." Props @pkarjala for the [fix](https://github.com/uhm-coe/authorizer/issues/121)!
+* Upgrade composer dependencies (firebase/php-jwt 5.5.1 => 6.3.0; google/apiclient-services v0.254.0 => v0.269.0; google/auth v1.21.1 => v1.23.0; guzzlehttp/guzzle 7.4.5 => 7.5.0; guzzlehttp/promises 1.5.1 => 1.5.2; guzzlehttp/psr7 2.4.0 => 2.4.1; monolog/monolog 2.7.0 => 2.8.0; phpseclib/phpseclib 3.0.14 => 3.0.16; symfony/deprecation-contracts 2.5.1 => 2.5.2; thenetworg/oauth2-azure 2.0.1 => v2.1.1).
 
 = 3.4.1 =
 * Add setting to support CAS servers behind proxies. Props @slyraskal for the [pull request](https://github.com/uhm-coe/authorizer/pull/117)!
@@ -643,6 +660,9 @@ add_filter( 'authorizer_allow_login', 'check_cas_attributes', 10, 2 );
 * Wed Apr 10, 2013
 
 == Upgrade Notice ==
+
+= 3.5.0 =
+**Upgrade Notice**: Google Sign-Ins now use the new [Google Identity Services library](https://developers.google.com/identity/gsi/web/guides/migration), which uses a different Sign In button UI and may also include the One Tap prompt. Please test if you use Google Sign-Ins!
 
 = 3.2.0 =
 Authorizer now requires PHP 7.2.5 or higher (phpCAS 1.4.0 requirement).
