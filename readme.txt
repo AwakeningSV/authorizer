@@ -1,16 +1,16 @@
 === Authorizer ===
 Contributors: figureone, the_magician, pkarjala, aargh-a-knot, elarequi, jojaba, slyraskal
-Tags: cas, ldap, google, google plus, login, authentication, authorization, access, education, limit login attempts, oauth
+Tags: cas, ldap, google, google plus, login, authentication, authorization, access, education, limit login attempts, oauth, oauth2
 Tested up to: 6.1
 Stable tag: trunk
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Authorizer limits login attempts, restricts access to specified users, and authenticates against external sources (e.g., Google, LDAP, or CAS).
+Authorizer limits login attempts, restricts access to specified users, and authenticates against external sources (e.g., OAuth2, Google, LDAP, or CAS).
 
 == Description ==
 
-*Authorizer* restricts access to a WordPress site to specific users, typically students enrolled in a university course. It maintains a list of approved users that you can edit to determine who has access. It also replaces the default WordPress login/authorization system with one relying on an external server, such as Google, CAS, or LDAP. Finally, *Authorizer* lets you limit invalid login attempts to prevent bots from compromising your users' accounts.
+*Authorizer* restricts access to a WordPress site to specific users, typically students enrolled in a university course. It maintains a list of approved users that you can edit to determine who has access. It also replaces the default WordPress login/authorization system with one relying on an external server, such as Google, CAS, LDAP, or an OAuth2 provider. Finally, *Authorizer* lets you limit invalid login attempts to prevent bots from compromising your users' accounts.
 
 View or contribute to the plugin source on GitHub: [https://github.com/uhm-coe/authorizer](https://github.com/uhm-coe/authorizer)
 
@@ -21,7 +21,7 @@ View or contribute to the plugin source on GitHub: [https://github.com/uhm-coe/a
 
 *Authorizer* provides the following options:
 
-* **Authentication**: WordPress accounts; Google accounts; CAS accounts; LDAP accounts
+* **Authentication**: WordPress accounts; Google accounts; CAS accounts; LDAP accounts; OAuth2 accounts
 * **Login Access**: All authenticated users (all local and all external can log in); Only specific users (all local and approved external users can log in)
 * **View Access**: Everyone (open access); Only logged in users
 * **Limit Login Attempts**: Progressively increase the amount of time required between invalid login attempts.
@@ -35,7 +35,7 @@ View or contribute to the plugin source on GitHub: [https://github.com/uhm-coe/a
 
 == Frequently Asked Questions ==
 
-= Help! I've disabled WordPress logins, my external logins (Google/CAS/LDAP) aren't working, and now I can't get back in! =
+= Help! I've disabled WordPress logins, my external logins (Google/CAS/LDAP/OAuth2) aren't working, and now I can't get back in! =
 
 If you add external=wordpress to the wp-login.php URL querystring, you can always get the WordPress login form to reappear. For example, if your site is at [https://www.example.com](https://www.example.com), then the URL would be: [https://www.example.com/wp-login.php?external=wordpress](https://www.example.com/wp-login.php?external=wordpress)
 
@@ -61,6 +61,17 @@ The [University of Hawai'i][uh], which provides authentication for student, facu
 12. Authorizer Option overridden by a Network Admin Option.
 
 == Changelog ==
+
+= 3.6.1 =
+* Allow defining Google Client Secret and OAuth2 Client Secret via filters (`authorizer_google_client_secret` and `authorizer_oauth2_client_secret`) or wp-config.php constants (`define( 'AUTHORIZER_GOOGLE_CLIENT_SECRET', '...' );` and `define( 'AUTHORIZER_OAUTH2_CLIENT_SECRET', '...' );`) to support integrations with third-party secrets managers (or simply to keep the secrets out of the database in plaintext).
+* Handle arrays in CAS attribute for first/last name.
+* Fix: conflict with W3 Total Cache (when using Azure CDN provider that uses an older guzzlehttp library). [Check status](https://github.com/W3EDGE/w3-total-cache/issues/642)
+* Fix: only clean up Google session on logout if it exists.
+* Fix: Remove all plugin options in database upon deletion/uninstall.
+* Fix: Handle Google login error triggered when a stale browser window sends a login request.
+* Upgrade composer dependencies (firebase/php-jwt v6.3.1 => v6.3.2, google/apiclient v2.12.6 => v2.13.0, google/apiclient-services v0.272.1 => v0.285.0, google/auth v1.23.1 => v1.25.0, phpseclib/phpseclib 3.0.17 => 3.0.18).
+* Mention OAuth2 support in readme.txt.
+* Update translatable strings.
 
 = 3.6.0 =
 * Security: update to [phpCAS 1.6.0](https://github.com/apereo/phpCAS/releases/tag/1.6.0) to address CVE-2022-39369.
